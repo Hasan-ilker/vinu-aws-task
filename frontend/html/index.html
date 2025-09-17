@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>FE</title></head>
+  <body>
+    <h1>Frontend Çalışıyor 🎉</h1>
+    <button id="btn">API Çağır</button>
+    <pre id="out"></pre>
+    <script>
+      document.getElementById('btn').onclick = async () => {
+        const r = await fetch('/api/hello');
+        document.getElementById('out').textContent = await r.text();
+      };
+    </script>
+  </body>
+</html>
