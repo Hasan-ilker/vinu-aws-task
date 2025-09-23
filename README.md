@@ -1,4 +1,4 @@
-#  Vinu AWS – DevOps Task 2
+#  Vinu AWS – DevOps Task 
 
 Bu proje, üç katmanlı (Frontend, Backend, Database) bir uygulamanın **Dockerize edilmesi**, **AWS üzerinde Terraform ile EC2 kurulumu**, **ECR üzerinden image yönetimi**, ve **GitHub Actions ile CI/CD süreci** kullanılarak deployment edilmesini kapsar.  
 
@@ -82,4 +82,5 @@ Vinu-AWS
 3. Kullanıcı EC2 public IP üzerinden uygulamaya erişir.  
 
 ---
+
 
