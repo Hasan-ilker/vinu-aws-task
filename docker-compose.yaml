@@ -11,7 +11,7 @@ services:
       - backend
 
   frontend:
-    image: 952732862406.dkr.ecr.us-east-1.amazonaws.com/vinu-frontend:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/vinu-frontend:${ENV_TAG}
     restart: always
     expose:
       - "80"
@@ -24,7 +24,7 @@ services:
       retries: 3
 
   backend:
-    image: 952732862406.dkr.ecr.us-east-1.amazonaws.com/vinu-backend:latest
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/vinu-backend:${ENV_TAG}
     restart: always
     environment:
       DB_HOST: db
