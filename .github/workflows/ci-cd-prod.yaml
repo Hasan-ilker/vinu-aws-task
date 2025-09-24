@@ -19,7 +19,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR (runner)
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
           | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
@@ -34,7 +34,6 @@ jobs:
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:prod ./backend
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:prod
 
-      # 🚀 Deploy to EC2 (Prod)
       - name: Deploy on EC2 (Prod)
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -47,6 +46,15 @@ jobs:
               git clone https://github.com/${{ github.repository }}.git
             fi
             cd vinu-aws-task
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
+
+            export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+            export AWS_REGION=${{ secrets.AWS_REGION }}
+            export ENV_TAG=prod
+
+            aws ecr get-login-password --region $AWS_REGION \
+              | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
             docker compose pull
             docker compose up -d
