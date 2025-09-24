@@ -55,6 +55,6 @@ jobs:
             git fetch origin dev
             git reset --hard origin/dev
 
-            # 🔑 EC2 içinde yeniden ECR login
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-              | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            # Yeni imajları çek ve containerları ayağa kaldır
+            docker compose pull
+            docker compose up -d
