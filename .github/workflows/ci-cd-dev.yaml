@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Repo indir
+      # 1. Repo indir
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # AWS kimlik bilgileri (ECR push için runner'da gerekli)
+      # 2. AWS kimlik bilgileri (GitHub Actions runner için)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -21,25 +21,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # ECR login (runner tarafında push için)
+      # 3. Runner tarafında ECR login
       - name: Login to Amazon ECR (runner)
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
           | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      # Frontend build & push (Dev tag)
+      # 4. Frontend build & push
       - name: Build, tag, and push frontend image (Dev)
         run: |
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:dev ./frontend
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:dev
 
-      # Backend build & push (Dev tag)
+      # 5. Backend build & push
       - name: Build, tag, and push backend image (Dev)
         run: |
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:dev ./backend
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:dev
 
-      # 🚀 Deploy to EC2 (Dev)
+      # 6. EC2 üzerinde deploy
       - name: Deploy on EC2 (Dev)
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -55,10 +55,14 @@ jobs:
             git fetch origin dev
             git reset --hard origin/dev
 
-            # ENV değişkenlerini set et (compose için)
+            # ENV değişkenlerini set et
             export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
             export AWS_REGION=${{ secrets.AWS_REGION }}
             export ENV_TAG=dev
+
+            # 🔑 EC2 içinde yeniden ECR login
+            aws ecr get-login-password --region $AWS_REGION \
+              | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
             # Yeni imajları çek ve containerları ayağa kaldır
             docker compose pull
