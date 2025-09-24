@@ -1,0 +1,52 @@
+name: CI/CD Pipeline - Prod
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Repo indir
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # AWS kimlik bilgileri
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # ECR login
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      # Frontend build & push
+      - name: Build, tag, and push frontend image
+        run: |
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:prod ./frontend
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:prod
+
+      # Backend build & push
+      - name: Build, tag, and push backend image
+        run: |
+          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:prod ./backend
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:prod
+
+      # 🚀 Deploy to EC2 (Prod)
+      - name: Deploy on EC2 (Prod)
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.EC2_PROD_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu
+            docker compose pull
+            docker compose up -d
