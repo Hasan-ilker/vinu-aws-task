@@ -49,14 +49,11 @@ jobs:
             git fetch origin dev
             git reset --hard origin/dev
 
-            # ENV değişkenlerini set et
+            # ENV değişkenlerini set et (compose için)
             export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
             export AWS_REGION=${{ secrets.AWS_REGION }}
             export ENV_TAG=dev
 
-            # EC2 içinde yeniden ECR login
-            aws ecr get-login-password --region $AWS_REGION \
-              | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
+            # Yeni imajları çek ve containerları ayağa kaldır
             docker compose pull
             docker compose up -d
