@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Repo indir
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2. AWS kimlik bilgileri (GitHub Actions runner için)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -19,21 +21,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
+      # 3. Runner tarafında ECR login
+      - name: Login to Amazon ECR (runner)
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
           | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      - name: Build, tag, and push frontend image
+      # 4. Frontend build & push
+      - name: Build, tag, and push frontend image (Dev)
         run: |
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:dev ./frontend
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-frontend:dev
 
-      - name: Build, tag, and push backend image
+      # 5. Backend build & push
+      - name: Build, tag, and push backend image (Dev)
         run: |
           docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:dev ./backend
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/vinu-backend:dev
 
+      # 6. EC2 üzerinde deploy
       - name: Deploy on EC2 (Dev)
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -41,14 +47,23 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/vinu-aws-task || git clone https://github.com/${{ github.repository }}.git vinu-aws-task
+            cd /home/ubuntu
+            if [ ! -d "vinu-aws-task" ]; then
+              git clone https://github.com/${{ github.repository }}.git
+            fi
             cd vinu-aws-task
             git fetch origin dev
             git reset --hard origin/dev
 
+            # ENV değişkenlerini set et
             export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
             export AWS_REGION=${{ secrets.AWS_REGION }}
             export ENV_TAG=dev
 
+            # 🔑 EC2 içinde yeniden ECR login
+            aws ecr get-login-password --region $AWS_REGION \
+              | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+            # Yeni imajları çek ve containerları ayağa kaldır
             docker compose pull
             docker compose up -d
